@@ -23,7 +23,29 @@ def user_exists(username, path="./db/users.json"):
         exists = True
     return exists
     
+def get_number_of_elements(path):
+    with open(path, "r", encoding="utf-8", newline="") as database:
+        data = json.load(database)
+        database.close()
+
+    return len(data)
     
+def send_message(username, message,sender):
+    path = getcwd() + "/db/" + username + "/unread_messages.json"
+    update_json(sender,message,path)
+
+def check_handshake(user, destination):
+    keys_path = getcwd() + "/db/" + user + "/keys.json"
+    with open(keys_path, "r", encoding="utf-8", newline="") as database:
+        keys = json.load(database)
+        database.close()
+    if not destination in keys:
+        return False
+
+    else:
+        return True
+
+
 def update_json(dict_key, data_to_dump, path = "./db/users.json"):
     """
     If the json doesn't exist, create it, otherwise include the new data in it.
@@ -42,6 +64,7 @@ def update_json(dict_key, data_to_dump, path = "./db/users.json"):
         try:
             with open(path, "r", encoding="utf-8", newline="") as database:
                 data = json.load(database)
+                
                 # if the key is not in the database, add it
                 if dict_key not in database:
                     data[dict_key] = data_to_dump
@@ -59,6 +82,77 @@ def update_json(dict_key, data_to_dump, path = "./db/users.json"):
         else:
             raise Exception("Error reading from JSON")
     return
+    
+
+def get_msg(user, index):
+    path = getcwd() + "/db/" + user + "/unread_messages.json"
+
+    with open(path, "r", encoding="utf-8", newline="") as json_file:
+        data = json.load(json_file)
+        json_file.close()
+    id = list(data.keys())[index]
+    return data[id]
+
+
+    return
+
+def index_in_json(index, path):
+    with open(path, "r", encoding="utf-8", newline="") as json_file:
+        data = json.load(json_file)
+        json_file.close()
+    try:
+        ret = list(data.keys()).index(index)
+    except ValueError:
+        ret = -1
+    return ret
+        
+
+def save_message(user, message, index):
+    path = getcwd() + "/db/" + user + "/read_messages.json"
+    with open(path, "r", encoding="utf-8", newline="") as json_file:
+        data = json.load(json_file)
+        json_file.close()
+
+    
+
+def delete_message(user, index, message):
+    path = getcwd() + "/db/" + user + "/unread_messages.json"
+    with open(path, "r", encoding="utf-8", newline="") as json_file:
+        data = json.load(json_file)
+        json_file.close()
+
+    id = list(data.keys())[index]
+    del data[id]
+
+    with open(path, "w", encoding="utf-8", newline="") as json_file:
+        json.dump(data, json_file)
+        json_file.close()
+
+    read_path = getcwd() + "/db/" + user + "/read_messages.json"
+    with open(read_path, "r", encoding="utf-8", newline="") as json_file:
+        read_data = json.load(json_file)
+        json_file.close()
+
+    sender = id.split("-")[0]
+
+    try:
+        messages_sender = read_data[sender]
+        keys = list(messages_sender.keys())
+        # print(keys + "njoohjbjsjdj")
+        new_key = int(keys[-1]) + 1
+
+
+    except KeyError:
+        messages_sender = {}
+        new_key = 0
+
+    # print(new_key, "mlnjnocno")
+    messages_sender[str(new_key)] = message
+    # print(messages_sender)
+    update_json(sender, messages_sender, read_path)
+
+    return sender
+
     
 
 def get_content_json(path, key) -> dict:
@@ -117,16 +211,26 @@ def load_db():
 
 def zip_keys(username, password):
     """
-    
     Arguments: username, password
     Returns: None
     """
     a = getcwd()
     source_path = getcwd() + "/db/" + username + "/" + "keys.json" #./db/username/keys.json
     destination_path = getcwd() + "/db/" + username + "/" + username + "_keys.zip" #./db/username/username_keys.zip
+
+    rsa_key_path = getcwd() + "/db/" + username + "/" + "private.pem"
+    rsa_key_destination_path = getcwd() + "/db/" + username + "/" + "private.zip"
+
+    messages_path = getcwd() + "/db/" + username + "/" + "read_messages.json"
+    messages_destination_path = getcwd() + "/db/" + username + "/" + "read_messages.zip"
+
     compression = 8
     pyzip.compress(source_path, None, destination_path, password, compression)
+    pyzip.compress(rsa_key_path, None, rsa_key_destination_path, password, compression)
+    pyzip.compress(messages_path, None, messages_destination_path, password, compression)
     os.remove(source_path)
+    os.remove(rsa_key_path)
+    os.remove(messages_path)
     os.chdir(a)
     return
 
@@ -139,8 +243,19 @@ def unzip_keys(username, password):
     a = getcwd()
     source_path = getcwd() + "/db/" + username + "/" + username + "_keys.zip" #./db/username/username_keys.zip
     destination_path = getcwd() + "/db/" + username #./db/username/
+
+    rsa_key_source_path = getcwd() + "/db/" + username + "/" + "private.zip"
+    rsa_key_destination_path = getcwd() + "/db/" + username
+
+    messages_source_path = getcwd() + "/db/" + username + "/" + "read_messages.zip"
+    messages_destination_path = getcwd() + "/db/" + username
+
     pyzip.uncompress(source_path, password, destination_path, 0)
+    pyzip.uncompress(rsa_key_source_path, password, rsa_key_destination_path, 0)
+    pyzip.uncompress(messages_source_path, password, messages_destination_path, 0)
     os.remove(source_path)
+    os.remove(rsa_key_source_path)
+    os.remove(messages_source_path)
     os.chdir(a)
     return
 
@@ -234,4 +349,5 @@ def save_file(username, name, data):
 
 
 if __name__ == '__main__':
-    reset_database("./db")
+    # reset_database("./db")
+    pass

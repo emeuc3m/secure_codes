@@ -32,7 +32,7 @@ def generate_symk():
 
 
 
-def rsa_encrypt(data_path, pubk):
+def rsa_encrypt_path(data_path, pubk):
     # Encryption
     file_out = open("encrypted_data.bin", "wb")
     data = open(data_path, "rb").read()
@@ -50,7 +50,33 @@ def rsa_encrypt(data_path, pubk):
     [ file_out.write(x) for x in (enc_session_key, cipher_aes.nonce, tag, ciphertext) ]
     file_out.close()
 
-def rsa_decrypt(enc_data, privk):
+def encode_64(binary_data) -> str:
+    """
+    Takes binary data and returns it encoded
+    Arguments: binary_data
+    Returns: encoded_data
+    """
+    return base64.b64encode(binary_data).decode("utf-8")
+
+def rsa_encrypt_str(data, pubk):
+    # Encryption
+    data = data.encode('utf-8')
+
+    recipient_key = RSA.import_key(open(pubk).read())
+    session_key = get_random_bytes(16)
+
+    # Encrypt the session key with the public RSA key
+    cipher_rsa = PKCS1_OAEP.new(recipient_key)
+    enc_session_key = cipher_rsa.encrypt(session_key)
+
+    # Encrypt the data with the AES session key
+    cipher_aes = AES.new(session_key, AES.MODE_EAX)
+    ciphertext, tag = cipher_aes.encrypt_and_digest(data)
+    return [encode_64(ciphertext), encode_64(tag), encode_64(enc_session_key), encode_64(cipher_aes.nonce)]
+    # [ file_out.write(x) for x in (enc_session_key, cipher_aes.nonce, tag, ciphertext) ]
+    # file_out.close()
+
+def rsa_decrypt_path(enc_data, privk):
     file_in = open(enc_data, "rb")
 
     private_key = RSA.import_key(open(privk).read())
@@ -68,14 +94,38 @@ def rsa_decrypt(enc_data, privk):
     print(data.decode("utf-8"))
 
 
+def rsa_decrypt_str(ciphertext, privk, enc_session_key, nonce, tag):
+    private_key = RSA.import_key(open(privk).read())
+
+    # Decrypt the session key with the private RSA key
+    cipher_rsa = PKCS1_OAEP.new(private_key)
+    # session_key = cipher_rsa.decrypt(enc_session_key)
+
+    data = [ciphertext, enc_session_key, nonce, tag]
+    decoded_data = decode_64(data)
+    ciphertext = decoded_data[0]
+    enc_session_key = decoded_data[1]
+    nonce = decoded_data[2]
+    tag = decoded_data[3]
+    
+    session_key = cipher_rsa.decrypt(enc_session_key)
+
+    # Decrypt the data with the AES session key
+    cipher_aes = AES.new(session_key, AES.MODE_EAX, nonce)
+    data = cipher_aes.decrypt_and_verify(ciphertext, tag)
+    return data
 
 
+def decode_64(data: list) -> list:
+    """
+    Takes data and returns its binary
+    Arguments: data
+    Returns: decoded_data
+    """
+    decoded_data = [base64.b64decode(x) for x in data]
+        
+    return decoded_data
 
-generate_symk()
-rsa_encrypt("a.txt", "receiver.pem")
-rsa_decrypt("encrypted_data.bin", "private.pem")
-
-# Decryption
 
 
 

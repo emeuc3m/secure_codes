@@ -3,7 +3,7 @@ from Crypto.Random import get_random_bytes
 from Crypto.PublicKey import RSA
 from Crypto.Hash import SHA3_256
 import base64
-
+from Crypto.Signature import pkcs1_15
 
 # Encriptar un archivo. 
 # Desencriptar un archivo.
@@ -23,6 +23,22 @@ def sim_encrypt_file(data_file: str) -> list:
     except:
         return -1
     
+    print(plaintext)
+    key = get_random_bytes(16) # generate a random key
+    cipher = AES.new(key, AES.MODE_EAX) # create the encription object
+    ciphertext, tag = cipher.encrypt_and_digest(plaintext) # encript the data
+    encription = [encode_64(ciphertext), encode_64(key), encode_64(tag), encode_64(cipher.nonce)]
+    return encription #list with [cipher text, key, tag, nonce]
+
+def sim_encrypt_str(data: str) -> list:
+    """
+    Takes the data_file and encrypts it, returning the encripted data, 
+    key, flag and nonce for its later decryption
+    Arguments: data_file (path to the file)
+    Returns: [cipher text, key, tag, nonce]
+    """
+    plaintext = data.encode("utf-8")
+    
     key = get_random_bytes(16) # generate a random key
     cipher = AES.new(key, AES.MODE_EAX) # create the encription object
     ciphertext, tag = cipher.encrypt_and_digest(plaintext) # encript the data
@@ -39,6 +55,19 @@ def sim_decrypt_file(ciphertext, key, tag, nonce) -> str:
     cipher = AES.new(decoded_data[1], AES.MODE_EAX, decoded_data[3]) # create cipher object
     data = cipher.decrypt_and_verify(decoded_data[0], decoded_data[2]) # decrypt the data
     return data.decode("utf-8")
+
+def sign(msg, pk):
+    msg_hashed = hash(msg)
+    signer = pkcs1_15.new(pk)  # create the object to sign
+    signed_hash = signer.sign(msg_hashed)
+    return signed_hash
+
+def validate(msg, signed_hash, pubk):
+        try:
+            msg_hash = hash(msg)
+            pkcs1_15.new(pubk).verify(msg_hash, signed_hash.encode('latin-1'))  # verify the file integrity
+        except (ValueError, TypeError) as excep:
+            raise "THE MESSAGE HAS BEEN MODIFIED" from excep
 
 def rsa_encrypt(data_path, pubk):
     # Encryption
@@ -75,6 +104,9 @@ def rsa_decrypt(enc_data, privk):
     data = cipher_aes.decrypt_and_verify(ciphertext, tag)
     print(data.decode("utf-8"))
 
+def generate_key():
+    return 
+
 def encode_64(binary_data) -> str:
     """
     Takes binary data and returns it encoded
@@ -94,9 +126,10 @@ def decode_64(data: list) -> list:
     return decoded_data
 
 def main():
-    a = sim_encrypt_file("/mnt/m/programming/cripto/p1/plain.txt")
-    print(a)
-    print(sim_decrypt_file(a[0],a[1],a[2],a[3]))
+    # a = sim_encrypt_file("/mnt/m/programming/cripto/p1/plain.txt")
+    # print(a)
+    # print(sim_decrypt_file(a[0],a[1],a[2],a[3]))
+    print(sim_encrypt_str("a.txt"))
 
 if __name__ == '__main__':
     main()

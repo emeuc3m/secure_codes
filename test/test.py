@@ -1,32 +1,15 @@
-import os
-import json
+a = {
+    "a":1,
+    "b":2,
+    "c":3,
+    "d":4
+}
 
-db_path = os.getcwd() + "/test/testdb.json"
-db = open(db_path, "rb")
-keys = {}
-encrypted_messages = []
-decrypted_messages = []
-
-
-db_dict = json.load(db)
-unread = 0
-for x in db_dict:
-    for y in db_dict[x]:
-        unread += 1
-        print(db_dict[x][y])
-
-
-def get_messages(usr):
-    key_dict = usr + "sym_key"
-    key = keys[key_dict]
-    for x in db_dict[usr]:
-        encrypted_messages.append(db_dict[usr][x])
-        decrypted_messages.append(hybrid.decrypt(db_dict[usr][x], key[a], key[b], key[c]))
-
-#decrypt part
-for x in db_dict:
-    get_messages(x)
-
-
-
-print(unread)
+# print(list(a.keys()).index("e"))
+# print(list(a.keys()).len())
+# print(list(a.keys())[2])
+b = {
+    "e":5
+}
+c = a + b
+print(c)
