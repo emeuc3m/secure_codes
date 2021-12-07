@@ -78,8 +78,8 @@ def encode_output(encrypted_data):
 def main():
 
     if len(sys.argv) < 2:
-   	 print (sys.argv[0], " --help to see the options")
-   	 exit(1)
+        print(sys.argv[0], " --help to see the options")
+        exit(1)
 
     parser = OptionParser()
     parser.add_option("-f", "--file", dest="filename",
